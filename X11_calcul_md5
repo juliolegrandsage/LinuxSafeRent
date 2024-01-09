@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ ! -z $1 ]; then
+  ACT_UNLOCK=$1"DEFIS"
+  ACT_UNLOCK_MD5=$( echo -n "$ACT_UNLOCK" | md5sum )
+  ACT_USR_DEFIS=${ACT_UNLOCK_MD5:0:8}
+  echo $ACT_USR_DEFIS
+else
+  echo "Vous devez fournir un nombre à six chiffres."
+fi
+
+
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+bash /etc/.defis_adh_X11/.defis_expire_users_warning
+

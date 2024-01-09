@@ -1,0 +1,9 @@
+[Unit]
+Description = Check defis active session
+
+[Service]
+ExecStart=/etc/.defis_adh_X11/.defis_active_session
+
+[Install]
+WantedBy=default.target
+

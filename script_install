@@ -1,0 +1,153 @@
+#!/bin/bash
+
+LOGFILE="/tmp/lock_install.log"
+LOCK_INSTALL="/etc/.lock_X11/"
+X11_INSTALL="/etc/X11/Xsession.d/"
+SYSTEMD_INSTALL="/etc/systemd/system/"
+
+FILE1=".active_session"
+FILE2=".expire_users_warning"
+FILE3=".str_stag"
+FILE4=".expire_date"
+FILE5="99session_warning"
+FILE6="check_active_session.service"
+
+ERROR="Erreur"
+INFO="Information"
+
+function WarningBox {
+  
+  ROOT_INSTALL="Vous devez avoir les autorisations root pour continuer l'installation ?"
+  PATH_SOURCE="Veuillez indiquer le chemin des fichiers d'installations ou ENTREE si répertoire courant :"
+  PATH_DIR_FALSE="Le répertoire source: $2 n'existe pas.\n\L'installation est abandonnée."
+  SOURCE_FILE="Le(s) fichier(s) source $2 sont manquants.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  ERROR_COPIE="Problème lors de la copie du fichier : $2.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  ERROR_CHMOD="Problème de changement de permissions dans le fichier : $2.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  ERROR_WRITE="Problème d'écriture dans le fichier : $2.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  ERROR_MKDIR="Problème lors de la création du répertoire : $2.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  ERROR_ACCESS="Problème d'accés ou de permissions sur le fichier: $2.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  SERVICE_NO_START="Le service $FILE6 n'a pas démarré correctement.\n\nL'installation est abandonnée. Le fichier de trace est disponible: $LOGFILE"
+  SUCCESS_BOX="L'installation s'est terminée correctement.Le fichier de trace est disponible: $LOGFILE"
+  
+  case $3 in
+    1) whiptail --title "$1" --msgbox "$SOURCE_FILE" 12 78;;
+	2) whiptail --title "$1" --msgbox "$SUCCESS_BOX" 12 78;;
+	3) whiptail --title "$1" --msgbox "$PATH_DIR_FALSE" 10 78;;
+	4) whiptail --title "$1" --no-button "Cancel" --yes-button "OK" --yesno "$ROOT_INSTALL" 10 78;;
+	5) whiptail --title "$1" --msgbox "$ERROR_COPIE" 10 78;;
+	6) whiptail --title "$1" --msgbox "$ERROR_CHMOD" 10 78;;
+	7) whiptail --title "$1" --msgbox "$ERROR_WRITE" 10 78;;
+	8) whiptail --title "$1" --msgbox "$ERROR_MKDIR" 10 78;;
+	9) whiptail --title "$1" --msgbox "$ERROR_ACCESS" 10 78;;
+  esac
+}
+
+echo "Début de l'installation" > $LOGFILE
+
+WarningBox $INFO " " 4
+if [ "$?" -eq 1 ]; then
+  return
+fi
+
+PATH_DIR=$(whiptail --title "$INFO" --inputbox "$PATH_SOURCE" 8 78  3>&1 1>&2 2>&3)
+if [ "$?" -eq 1 ]; then
+  return
+fi
+if [ ! -z $PATH_DIR ]; then
+  if [ ! -d $PATH_DIR ]; then
+	WarningBox $ERROR $PATH_DIR 3
+	echo "Erreur: Le répertoire source: $PATH_DIR n'existe pas" >> $LOGFILE
+    return
+  fi
+  GRP=`echo -n $PATH_DIR | grep /$`
+  if [ "$?" -eq 1 ]; then
+    PATH_DIR=$PATH_DIR"/"
+  fi
+else
+  PATH_DIR=""
+fi
+
+SOURCE_FILES="$PATH_DIR$FILE1,$PATH_DIR$FILE2,$PATH_DIR$FILE3,$PATH_DIR$FILE5,$PATH_DIR$FILE6"
+MISSING="";CPT=0;ARRAY1=(${SOURCE_FILES//,/ })
+for ((i=0; i < $((${#ARRAY1[@]})); i++)); do
+   if [ ! -f ${ARRAY1[i]} ]; then
+     MISSING=$MISSING${ARRAY1[i]}", "
+	 CPT=$((CPT + 1))
+   fi
+done
+if [ $CPT -gt 0 ]; then
+  MISSING=$(echo -e $MISSING | sed 's/ * $//' | sed 's/,$//')
+  WarningBox $ERROR "$MISSING" 1
+  echo "Erreur: Le(s) fichier(s) source suivants sont manquants : $MISSING" >> $LOGFILE
+  return
+fi
+
+if [ ! -d $LOCK_INSTALL ]; then
+  echo "Création du répertoire principal de travail $LOCK_INSTALL" >> $LOGFILE
+  ERR=$(mkdir $LOCK_INSTALL 3>&1 1>&2 2>&3)
+  if [ "$?" -eq 1 ]; then
+    WarningBox $ERROR $LOCK_INSTALL 8
+	echo "$ERROR: $ERR" >> $LOGFILE
+	return
+  fi
+else
+  echo "Info: Le répertoire de travail $LOCK_INSTALL existe déjà" >> $LOGFILE
+fi
+
+PATH_DEST="$LOCK_INSTALL,$LOCK_INSTALL,$LOCK_INSTALL,$X11_INSTALL,$SYSTEMD_INSTALL"
+ARRAY2=(${PATH_DEST//,/ })
+for ((i=0; i < $((${#ARRAY1[@]})); i++)); do
+  echo "Copie du fichier : ${ARRAY1[i]} dans ${ARRAY2[i]}" >> $LOGFILE
+  ERR=$(cp ${ARRAY1[i]} ${ARRAY2[i]} 3>&1 1>&2 2>&3)
+  if [ "$?" -eq 1 ]; then
+    WarningBox $ERROR "${ARRAY1[i]} vers ${ARRAY2[i]}" 5
+    echo "$ERROR: $ERR">> $LOGFILE
+    return
+  fi
+done
+
+CHMOD_PERM="744,755,644,644,664"
+ARRAY3=(${CHMOD_PERM//,/ })
+for ((i=0; i < $((${#ARRAY1[@]})); i++)); do
+   echo "Modifications des permissions sur ${ARRAY2[i]}${ARRAY1[i]} (chmod ${ARRAY3[i]})" >> $LOGFILE
+   ERR=$(chmod ${ARRAY3[i]} ${ARRAY2[i]}${ARRAY1[i]} 3>&1 1>&2 2>&3)
+   if [ "$?" -eq 1 ]; then
+     WarningBox $ERROR "${ARRAY2[i]}${ARRAY1[i]}" 6
+     echo "$ERROR: $ERR">> $LOGFILE
+     return
+   fi
+done
+
+echo "Création est activation du service check_active_session" >> $LOGFILE
+systemctl daemon-reload
+ERR=$(systemctl enable $FILE6)
+if [ "$?" -eq 1 ]; then
+  WarningBox $ERROR $FILE6 9
+  echo "Erreur: Le service $FILE6 dans /etc/systemd/system/ n'a pas démarré correctement." >> $LOGFILE
+  return
+fi
+
+echo "Création du fichier d'expiration $FILE4 dans $LOCK_INSTALL" >> $LOGFILE
+echo "La date d'expiration du compte est fixée à +1 an et 15 jours soit le $NEXT_DATE_ACT" >> $LOGFILE
+NEXT_DATE_ACT=$(date --date 'next year +15 days' "+%d/%m/%Y")
+STR_DATE="# Indiquer la date d'expiration au format JJ/MM/AAAA"
+ERR=$(echo $STR_DATE > $LOCK_INSTALL$FILE4)
+if [ "$?" -eq 1 ]; then
+  WarningBox $ERROR $FILE4 9
+  echo "Erreur: Problème d'accés ou de permissions sur le fichier: $FILE4" >> $LOGFILE
+  return
+fi
+
+echo "ADH_EXPIRE_DATE=$NEXT_DATE_ACT" >> $LOCK_INSTALL$FILE4
+echo "Modifications des permissions sur $FILE4 (chmod 644)" >> $LOGFILE
+ERR=$(chmod 644 $LOCK_INSTALL$FILE4 3>&1 1>&2 2>&3)
+if [ "$?" -eq 1 ]; then
+  WarningBox $ERROR $FILE4 6
+  echo "$ERROR: $ERR">> $LOGFILE
+  return
+fi
+
+
+echo "L'installation s'est correctement terminée." >> $LOGFILE
+WarningBox $INFO " " 2
+
