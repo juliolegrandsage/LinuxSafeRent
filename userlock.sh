@@ -40,3 +40,6 @@ while true; do
 done
 
 echo "Accès expiré."
+
+
+# code de Julio Le Grand Sage aka foreach pour La Capsule. Vous êtes libres de le modifier, de l'adapter et de le redistribuer.
