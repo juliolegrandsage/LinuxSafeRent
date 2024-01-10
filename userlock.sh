@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#Ce fichier Bash a été pensé pour une distrib Linux Mint qui utilise l'environnement Gnome, si vous désirez l'utiliser sur un autre environnement de bureau, pensez à adapter en conséquence.
+# Ce fichier Bash a été pensé pour une distrib Linux Mint qui utilise l'environnement Gnome, si vous désirez l'utiliser sur un autre environnement de bureau, pensez à adapter en conséquence.
 
 
 # Définir la date de fin à une minute à partir de maintenant
