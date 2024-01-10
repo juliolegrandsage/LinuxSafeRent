@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#Ce fichier Bash a été pensé pour une distrib Linux Mint qui utilise l'environnement Gnome, si vous désirez l'utiliser sur un autre environnement de bureau, pensez à adapter en conséquence.
+
+
 # Définir la date de fin à une minute à partir de maintenant
 end_date=$(date -d "+1 minute" +"%Y-%m-%d %H:%M:%S")
 
@@ -19,7 +22,7 @@ while true; do
 
     # Si le temps restant est inférieur ou égal à zéro, effectuer les actions finales
     if [ $remaining_seconds -le 0 ]; then
-        # Changez le mot de passe de l'utilisateur avec le nouveau mot de passe "Gandalf"
+        # Changez le mot de passe de l'utilisateur avec le nouveau mot de passe (modifiez la ligne ci dessous)
         echo -e "Gandalf\nGandalf" | sudo passwd $(whoami)
 
         # Déconnectez l'utilisateur pour le renvoyer à l'écran de connexion
