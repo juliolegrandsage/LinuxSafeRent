@@ -19,3 +19,7 @@
 ## Pour qui ?
 
 ### Si vous êtes un loueur de matériel informatique sous Linux ou si vous êtes réparateur et que vous avez du matériel de prêt, ce petit programme est fait pour vous.
+
+## Existera-t-il un "WindowsSafeRent" ? 
+
+### Pour le moment, une version pour windows ou tout autre OS n'est pas prévue. La demande de base m'ayant été faite pour une distribution particulière de Linux. En revanche, je pourrais éventuellement envisager une version Android pour les téléphones de prêt.
