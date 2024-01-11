@@ -43,8 +43,10 @@ while true; do
     remaining_seconds=$(( $remaining_seconds % 60 ))
 
     notify-send "Temps restant" "Il reste $remaining_minutes minutes et $remaining_seconds secondes d'accès."
+    zenity  --warning --title="Avertissement avant fin de location" --text="Votre ordinateur va se bloquer si vous ne contactez pas le loueur."
 
     sleep 10  # Attendre 10 secondes avant de vérifier à nouveau
+    
 done
 
 echo "Accès expiré."
