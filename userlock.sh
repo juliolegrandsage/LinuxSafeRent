@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # Ce fichier Bash a été pensé pour une distrib Linux Mint qui utilise l'environnement Gnome, si vous désirez l'utiliser sur un autre environnement de bureau, pensez à adapter en conséquence.
-
+sudo echo "Activation de la séquence."
 
 # Définir la date de fin à une minute à partir de maintenant
 end_date=$(date -d "+1 minute" +"%Y-%m-%d %H:%M:%S")
+
+echo "Code crée par Julio Le Grand Sage aka foreach pour La Capsule !"
 
 echo "Date actuelle : $(date +"%Y-%m-%d %H:%M:%S")"
 echo "Fin de votre accès : $end_date"
@@ -24,10 +26,16 @@ while true; do
     if [ $remaining_seconds -le 0 ]; then
         # Changez le mot de passe de l'utilisateur avec le nouveau mot de passe (modifiez la ligne ci dessous)
         echo -e "Gandalf\nGandalf" | sudo passwd $(whoami)
+        
 
-        # Déconnectez l'utilisateur pour le renvoyer à l'écran de connexion
-        sudo pkill -u $(whoami)
+        zenity --warning --title="Fin de location" --text="L'ordinateur va redemarrer, votre mot de passe va être modifié. Veuillez contacter le loueur pour connaitre le mot de passe de secours."
 
+        sudo shutdown -r +1
+        
+
+
+
+        
         break
     fi
 
