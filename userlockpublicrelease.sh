@@ -61,23 +61,7 @@ configure_zenity_messages() {
     echo "$new_content" | sudo tee "$zenity_config_file" > /dev/null
 }
 
-# Fonction pour configurer les messages d'avertissement
-configure_warning_messages() {
-    # Vérifier si le fichier de configuration des messages d'avertissement existe
-    if [ -e "$warning_config_file" ]; then
-        # Charger les messages d'avertissement à partir du fichier
-        current_content=$(sudo cat "$warning_config_file")
-    else
-        # Utiliser les messages d'avertissement par défaut
-        current_content="$default_warning_message"
-    fi
 
-    # Afficher une boîte de dialogue avec une zone de texte contenant le contenu actuel
-    new_content=$(zenity --text-info --title="Édition des messages d'avertissement" --editable --width=400 --height=300 --text="$current_content")
-
-    # Enregistrer le nouveau contenu dans le fichier
-    echo "$new_content" | sudo tee "$warning_config_file" > /dev/null
-}
 
 # Demander à l'utilisateur de configurer les messages Zenity
 configure_zenity_messages

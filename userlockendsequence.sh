@@ -76,8 +76,9 @@ while true; do
         is_locked=true  # Mettre à jour le statut du verrouillage
         restarting=true  # Indiquer que le redémarrage est en cours
         zenity --info --title="Information" --text="$(cat "$zenity_config_file")"
-       	gsettings set org.gnome.desktop.background picture-uri "file:///echepil.jpg"
-        sudo shutdown -r +1
+	sudo pkill -u $(whoami)
+        cinnamon-screensaver-command --lock
+        
     fi
 
     # Réinitialiser la variable is_locked et restarting à false si l'utilisateur est connecté
