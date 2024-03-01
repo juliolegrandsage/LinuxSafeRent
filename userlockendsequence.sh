@@ -1,9 +1,26 @@
 #!/bin/bash
 
 # Mot de passe en dur (remplacez "votre_mot_de_passe" par votre mot de passe réel)
-new_password="fraise"
+new_password="mJoVy30#"
+# Heure d'expiration fixée à 12:00
+expiration_time="12:00"
 # Chemin vers le fichier de date d'expiration
-expiration_date_file="fin_acces_date.txt"
+expiration_date_file="/var/lib/fin_acces_date.txt"
+
+# Messages Zenity par défaut
+zenity_config_file="/var/lib/zenity_config.txt"
+message1="La location de cet ordinateur arrive à son terme (sous un mois) et nous vous invitons à reprendre contact avec GOUPIL pour renouveler votre adhésion ou ramener le matériel si vous ne souhaitez pas l'acheter.\n\nMail : goupil.ere@gmail.com\n\nTel : 06 22 09 86 53"
+
+message2="La location de cet ordinateur arrive à son terme (sous deux semaines) et ne sera plus utilisable.\n\Nous vous invitons à reprendre contact avec GOUPIL pour renouveler votre adhésion ou ramener le matériel si vous ne souhaitez pas l'acheter.\n\Mail : goupil.ere@gmail.com\n\Tel : 06 22 09 86 53"
+message3="La location de cet ordinateur arrive à son terme (sous 7 jours) et ne sera plus utilisable.\n\Nous vous invitons à reprendre contact avec GOUPIL pour renouveler votre adhésion ou ramener le matériel si vous ne souhaitez pas l'acheter.\n\Mail : goupil.ere@gmail.com\n\Tel : 06 22 09 86 53"
+
+# Fonction pour obtenir la date d'expiration avec l'heure fixée
+get_expiration_datetime() {
+    # Obtenez la date d'expiration avec l'heure fixée à 12:00
+    today=$(date +%Y-%m-%d)
+    expiration_datetime="$today $expiration_time"
+    echo "$expiration_datetime"
+}
 
 # bool pour l'état de blocage
 is_locked=false
@@ -11,86 +28,47 @@ is_locked=false
 # Variable pour suivre l'état du redémarrage
 restarting=false
 
-# Chemin vers le fichier de configuration Zenity
-zenity_config_file="zenity_config.txt"
-
-# Messages Zenity par défaut
-default_expiration_message="Vous êtes dans la dernière période de 30 jours avant la date d'échéance.\n\nPensez à renouveler votre accès.\n\nContact : 06 22 09 86 53 / clech.michel@wanadoo.fr"
-default_password_success_message="Mot de passe configuré avec succès"
-
 # Fonction pour vérifier si un utilisateur est connecté
 is_user_logged_in() {
     who | grep -q "$(whoami)"
 }
 
-notify_one_month_before() {
-    current_timestamp=$(date +"%s")
-    expiration_datetime=$(cat "$expiration_date_file")
-    expiration_timestamp=$(date -d "$expiration_datetime" +"%s")
-    three_weeks_before=$(date -d "$expiration_datetime -1 month -3 weeks" +"%s")
-
-    # Si on est dans le dernier mois avant échéance et qu'il reste plus de trois semaines
-    if [ $current_timestamp -ge $three_weeks_before ] && [ $current_timestamp -lt $expiration_timestamp ]; then
-        # Déterminer le nombre de secondes restantes (ici, par exemple, on utilise 10 secondes pour simuler des tests rapides)
-        remaining_seconds=$(($expiration_timestamp - $current_timestamp))
-
-        # Si le reste de la division par 3 est égal à 0 (c'est-à-dire toutes les trois secondes)
-        if [ $(($remaining_seconds % 3)) -eq 0 ]; then
-            # Afficher un message Zenity différent en fonction des secondes restantes
-            case $(($remaining_seconds / 3)) in
-                3)  # Trois secondes restantes
-                    zenity --info --title="Information" --text="Message pour les trois secondes restantes"
-                    ;;
-                2)  # Deux secondes restantes
-                    zenity --info --title="Information" --text="Message pour les deux secondes restantes"
-                    ;;
-                1)  # Une seconde restante
-                    zenity --info --title="Information" --text="Message pour la dernière seconde"
-                    ;;
-            esac
-        fi
-    fi
+# Fonction pour afficher le message Zenity correspondant à la date donnée
+display_zenity_message() {
+    local message="$1"
+    zenity --info --title="Information" --text="$message"
 }
 
-# Fonction pour supprimer l'application de démarrage si la location est arrivée à échéance
-remove_autostart_if_expired() {
-    current_timestamp=$(date +"%s")
-    expiration_datetime=$(cat "$expiration_date_file")
-    expiration_timestamp=$(date -d "$expiration_datetime" +"%s")
+# Demander à l'utilisateur de choisir la date et l'heure d'expiration
+expiration_datetime=$(get_expiration_datetime)
 
-    # Si le temps restant est inférieur ou égal à zéro et l'application de démarrage existe, la supprimer
-    if [ $current_timestamp -ge $expiration_timestamp ] && [ -e "$autostart_file" ]; then
-        rm "$autostart_file"
-    fi
-}
+# Assurer que le script a les permissions pour écrire dans le fichier
+echo "$expiration_datetime" | sudo tee "$expiration_date_file" > /dev/null
+
+# Notification pour informer que la date a été enregistrée avec succès
+zenity --info --title="Information" --text="Moment d'échéance : $expiration_datetime"
+
+# Configurer le mot de passe
+echo -e "$new_password\n$new_password" | sudo passwd $(whoami)  # Changer le mot de passe
+
+# Afficher un message pour indiquer que le script est lancé
+zenity --info --title="Info" --text="LinuxSafeRent est lancé"
 
 # Boucle pour vérifier le temps restant chaque minute
 while true; do
     current_timestamp=$(date +"%s")
-    expiration_datetime=$(cat "$expiration_date_file")
+    expiration_datetime=$(get_expiration_datetime)
     expiration_timestamp=$(date -d "$expiration_datetime" +"%s")
-        
-    sleep 5
-    zenity --info --title="Information" --text="Message pour les trois semaines restantes"
-    
-    sleep 5
-    zenity --info --title="Information" --text="Second message"
-    
-    sleep 5
-    zenity --info --title="Information" --text="Troisième message"
 
     # Si le temps restant est inférieur ou égal à zéro et le verrouillage n'a pas été effectué, exécuter le script de modification de mot de passe et redémarrage
     if [ $current_timestamp -ge $expiration_timestamp ] && [ "$is_locked" = false ] && [ "$restarting" = false ]; then
-        is_locked=true  # Mettre à jour le statut du verrouillage
-        echo -e "fraise\nfraise" | sudo passwd $(whoami)  # Changer le mot de passe
-
+    	zenity --info --title --text="La location de cet ordinateur est arrivée à son terme.\n\ Pour obtenir un nouveau mot de passe utilisateur, nous vous invitons à reprendre contact avec GOUPIL\n\Mail : goupil.ere@gmail.com\n\Tel : 06 22 09 86 5"
+        echo -e "$new_password\n$new_password" | sudo passwd $(whoami)  # Changer le mot de passe
+        pkill -u $(whoami)  # Déconnexion de l'utilisateur actuel
         restarting=true  # Indiquer que le redémarrage est en cours
-        zenity --info --title="Information" --text="$(cat "$zenity_config_file")"
-
+        zenity --info --title="Information" --text="Info finale "
         if [ -n "$DISPLAY" ]; then
-
             # Pour les environnements graphiques
-            pkill -u $(whoami)  # Déconnexion de l'utilisateur actuel
             cinnamon-screensaver-command --lock || gnome-screensaver-command --lock || dm-tool lock
         else
             # Pour les environnements non graphiques
@@ -105,11 +83,16 @@ while true; do
         # restore_default_wallpaper  # Restaurer le fond d'écran par défaut
     fi
 
-    # Afficher une notification un mois avant la date d'échéance
-    notify_one_month_before
-
-    # Supprimer l'application de démarrage si la location est arrivée à échéance
-    remove_autostart_if_expired
+    # Afficher les messages Zenity correspondants aux dates configurées
+    current_date=$(date +%Y-%m-%d)
+    if [ "$current_date" = "2024-03-04 12:00:00" ]; then
+        display_zenity_message "$message1"
+    elif [ "$current_date" = "2024-03-06 12:00:00" ]; then
+        display_zenity_message "$message2"
+    elif [ "$current_date" = "2024-03-07 12:00:00"]; then
+        display_zenity_message "$message3"
+    fi
 
     sleep 60  # Attendre 60 secondes avant de vérifier à nouveau
 done
+
